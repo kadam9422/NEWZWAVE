@@ -14,7 +14,6 @@ const readStore = (key, fallback) => {
 const saveStore = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 const escapeHtml = (value = "") => String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 const articleKey = (article) => article.url || `${article.title}|${article.author || ""}`;
-const currentUser = () => readStore("nw-user", null);
 let articles = [...fallbackArticles];
 let liveArticles = [...fallbackArticles];
 let publishedArticles = [];
@@ -44,9 +43,25 @@ function ensureShell() {
       new Notification("Newz Wave", { body: "Breaking news alerts are enabled." });
     }
   });
+  refreshAccountLabel();
+}
+
+async function refreshAccountLabel() {
   const label = document.getElementById("accountLabel");
-  if (label) label.innerHTML = currentUser() ? `Hi, ${escapeHtml(currentUser().name)} <button id="logoutButton" class="text-button" type="button">Log out</button>` : '<a href="login.html">Log in</a>';
-  document.getElementById("logoutButton")?.addEventListener("click", () => { localStorage.removeItem("nw-user"); location.href = "index.html"; });
+  if (!label) return;
+  try {
+    const response = await fetch("/api/auth/me", { cache: "no-store" });
+    const data = await response.json();
+    label.innerHTML = data.user
+      ? `Hi, ${escapeHtml(data.user.name)} <button id="logoutButton" class="text-button" type="button">Log out</button>`
+      : '<a href="login.html">Log in</a>';
+    document.getElementById("logoutButton")?.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      location.href = "index.html";
+    });
+  } catch {
+    label.innerHTML = '<a href="login.html">Log in</a>';
+  }
 }
 
 function renderSearch() {
@@ -133,36 +148,58 @@ async function loadArticles() {
   renderArticles();
 }
 
+function showAuthMessage(form, message) {
+  const status = form.closest(".form-card")?.querySelector("#authMessage");
+  if (status) status.textContent = message;
+}
+
+async function submitAuth(form, endpoint, payload) {
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || "Authentication failed.");
+    location.href = "user%20profile.html";
+  } catch (error) {
+    showAuthMessage(form, error instanceof SyntaxError ? "Account service unavailable. Open the site through the Newz Wave app server." : error.message || "Authentication failed.");
+  }
+}
+
 function initializeAuth() {
   const registerForm = document.getElementById("registerForm");
   registerForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const accounts = readStore("nw-accounts", []);
-    const email = form.email.value.trim().toLowerCase();
-    if (accounts.some((account) => account.email === email)) return alert("An account with this email already exists.");
-    accounts.push({ name: form.name.value.trim(), email, password: form.password.value });
-    saveStore("nw-accounts", accounts);
-    saveStore("nw-user", { name: form.name.value.trim(), email });
-    location.href = "user%20profile.html";
+    submitAuth(form, "/api/auth/register", {
+      name: form.name.value.trim(),
+      email: form.email.value.trim(),
+      password: form.password.value
+    });
   });
   const loginForm = document.getElementById("loginForm");
   loginForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
-    const account = readStore("nw-accounts", []).find((item) => item.email === form.email.value.trim().toLowerCase() && item.password === form.password.value);
-    if (!account) return alert("Email or password is incorrect. Register first on this device.");
-    saveStore("nw-user", { name: account.name, email: account.email });
-    location.href = "user%20profile.html";
+    submitAuth(form, "/api/auth/login", {
+      email: form.email.value.trim(),
+      password: form.password.value
+    });
   });
 }
 
-function initializeProfile() {
+async function initializeProfile() {
   const container = document.getElementById("profileContent");
   if (!container) return;
-  const user = currentUser();
+  let user = null;
+  try {
+    const response = await fetch("/api/auth/me", { cache: "no-store" });
+    user = (await response.json()).user;
+  } catch { /* A static-only host has no account API. */ }
   if (!user) {
-    container.innerHTML = '<h2>Reader profile</h2><p>Log in or create an account to see your reading activity.</p><a class="link-btn" href="login.html">Log in</a>';
+    container.innerHTML = '<h2>Reader profile</h2><p>Log in through the Newz Wave app server to see your account.</p><a class="link-btn" href="login.html">Log in</a>';
     return;
   }
   container.innerHTML = `<p class="eyebrow">Reader account</p><h1>${escapeHtml(user.name)}</h1><p>${escapeHtml(user.email)}</p><div class="profile-stats"><div><strong>${readStore("nw-bookmarks", []).length}</strong><span>Bookmarks</span></div><div><strong>${readStore("nw-favourites", []).length}</strong><span>Favourites</span></div></div><label class="preference-row"><input id="breakingAlerts" type="checkbox" ${localStorage.getItem("nw-alerts") === "on" ? "checked" : ""}> Breaking news notifications</label>`;

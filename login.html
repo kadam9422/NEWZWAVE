@@ -20,15 +20,37 @@
     </header>
 
     <main class="auth-shell container">
-      <section class="form-card">
-        <h2>Welcome back</h2>
-        <p>Sign in to save stories and personalize your reading feed.</p>
-        <form id="loginForm">
-          <input name="email" type="email" placeholder="Email" autocomplete="email" required />
-          <input name="password" type="password" placeholder="Password" autocomplete="current-password" required />
-          <button class="submit-btn" type="submit">Login</button>
-        </form>
-        <p class="form-footnote">New here? <a href="register.html">Create an account</a></p>
+      <section class="auth-layout">
+        <div class="media-panel">
+          <div class="media-card">
+            <span class="media-label">Top story</span>
+            <img src="img/news-hero.svg" alt="News photo graphic representing a city briefing" />
+            <div class="media-copy">
+              <h3>City leaders unveil a new green transit plan</h3>
+              <p>Residents are reacting to a bold strategy aimed at reducing commute time and cutting emissions.</p>
+            </div>
+          </div>
+
+          <div class="media-card video-card">
+            <span class="media-label">Live coverage</span>
+            <video controls poster="img/news-video-poster.svg">
+              <source src="" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+
+        <section class="form-card">
+          <h2>Welcome back</h2>
+          <p>Sign in to save stories and personalize your reading feed.</p>
+          <form id="loginForm">
+            <input name="email" type="email" placeholder="Email" autocomplete="email" maxlength="254" required />
+            <input name="password" type="password" placeholder="Password" autocomplete="current-password" maxlength="128" required />
+            <button class="submit-btn" type="submit">Login</button>
+          </form>
+          <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
+          <p class="form-footnote">New here? <a href="register.html">Create an account</a></p>
+        </section>
       </section>
     </main>
     <script src="script.js"></script>

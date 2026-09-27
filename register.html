@@ -24,11 +24,12 @@
         <h2>Create your account</h2>
         <p>Start your curated news journey with personalized alerts and bookmarks.</p>
         <form id="registerForm">
-          <input name="name" type="text" placeholder="Full name" autocomplete="name" required />
-          <input name="email" type="email" placeholder="Email" autocomplete="email" required />
-          <input name="password" type="password" placeholder="Password (8 characters minimum)" minlength="8" autocomplete="new-password" required />
+          <input name="name" type="text" placeholder="Full name" autocomplete="name" minlength="2" maxlength="80" required />
+          <input name="email" type="email" placeholder="Email" autocomplete="email" maxlength="254" required />
+          <input name="password" type="password" placeholder="Password (12 characters minimum)" minlength="12" maxlength="128" autocomplete="new-password" required />
           <button class="submit-btn" type="submit">Register</button>
         </form>
+        <p id="authMessage" class="auth-message" role="status" aria-live="polite"></p>
         <p class="form-footnote">Already registered? <a href="login.html">Log in</a></p>
       </section>
     </main>
